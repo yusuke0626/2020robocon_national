@@ -9,6 +9,8 @@
 #include <sstream>
 #include <string>
 #include <fstream>
+#include <numeric>
+#include <array>
 
 constexpr std::size_t WIDTH = 640;
 constexpr std::size_t HEIGHT = 360;
@@ -35,8 +37,8 @@ struct rgb_data
     float pitch;
 };
 
-int pole_interval;
-int horizontal_line;
+int pole_interval = 500;
+int horizontal_line = 0;
 
 int main(int argc, char **argv) try
 {
@@ -90,8 +92,6 @@ int main(int argc, char **argv) try
         }
 
         cv::Mat color(cv::Size(color_map.get_width(), color_map.get_height()), CV_8UC3, (void *)color_map.get_data(), cv::Mat::AUTO_STEP);
-        pole_interval = 500;
-        horizontal_line = 0;
         if(horizontal_line > 0){
             cv::line(color, cv::Point(0,horizontal_line), cv::Point(WIDTH,horizontal_line), cv::Scalar(0, 255, 100), 5, 10);
         }
@@ -127,6 +127,8 @@ int main(int argc, char **argv) try
                 pole_interval -= 2;
                 break;
         }
+
+        std::cout << "pole interval:" << pole_interval << std::endl;
 
         if(input_key_num == 116){
             cv::destroyAllWindows();
@@ -265,11 +267,11 @@ int main(int argc, char **argv) try
 
 
         cv::Mat obstacle = cv::Mat::zeros(color.size(),CV_8UC3);
-        int pix_count_x;
-        for(int pix_count_x = pole_interval / 2; pix_count_x < WIDTH /2 - pole_interval / 2; pix_count_x+=2){
-            for(int pix_count_y = 0; pix_count_y < HEIGHT/2; pix_count_y+=2){
-                if(depth_map.get_distance(pix_count_x, pix_count_y) < 3 && depth_map.get_distance(pix_count_x, pix_count_y) > 1.5){
-                    //std::cout << depth_map.get_distance(pix_count_x, pix_count_y) << std::endl;
+        for(int pix_count_x = pole_interval / 4; pix_count_x < WIDTH  - pole_interval / 4; pix_count_x+=2){
+            for(int pix_count_y = horizontal_line ; pix_count_y < HEIGHT / 2; pix_count_y+=2){
+                if(depth_map.get_distance(pix_count_x, pix_count_y) < 3 && depth_map.get_distance(pix_count_x, pix_count_y) > 2.5){
+                        //std::cout << pix_count_x  << ":" << pix_count_y << ":" << stability_count << std::endl;
+                        //std::cout << WIDTH  << ":" << HEIGHT << ":" << stability_count << std::endl;
                     cv::circle(obstacle, cv::Point(pix_count_x,pix_count_y),1,cv::Scalar(255,255,255),-1);
                 }
             }
