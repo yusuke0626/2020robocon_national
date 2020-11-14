@@ -10,13 +10,11 @@
 #include <string>
 #include <fstream>
 
-constexpr std::size_t WIDTH = 1280 / 2;
-constexpr std::size_t HEIGHT = 720 / 2;
+constexpr std::size_t WIDTH = 640;
+constexpr std::size_t HEIGHT = 360;
 constexpr double ratio = WIDTH / (double)HEIGHT;
 constexpr bool filter = true;
 constexpr short hole_fillter_mode = 1;
-constexpr int LOGO_X = 350;
-constexpr int LOGO_Y = 290;
 
 int orion_status;
 
@@ -36,6 +34,9 @@ struct rgb_data
     float roll;
     float pitch;
 };
+
+int pole_interval;
+int horizontal_line;
 
 int main(int argc, char **argv) try
 {
@@ -89,21 +90,61 @@ int main(int argc, char **argv) try
         }
 
         cv::Mat color(cv::Size(color_map.get_width(), color_map.get_height()), CV_8UC3, (void *)color_map.get_data(), cv::Mat::AUTO_STEP);
+        pole_interval = 500;
+        horizontal_line = 0;
+        if(horizontal_line > 0){
+            cv::line(color, cv::Point(0,horizontal_line), cv::Point(WIDTH,horizontal_line), cv::Scalar(0, 255, 100), 5, 10);
+        }
 
-        cv::line(color, cv::Point(280 / 2, 530 / 2), cv::Point(280 / 2, 530 / 2), cv::Scalar(0, 255, 100), 10, 16);
-        cv::line(color, cv::Point(1000 / 2, 530 / 2), cv::Point(1000 / 2, 530 / 2), cv::Scalar(255, 225, 100), 10, 16);
-        cv::line(color, cv::Point(340 / 2, 216 / 2), cv::Point(940 / 2, 216 / 2), cv::Scalar(255, 0, 0), 5, 16);
+        if(pole_interval < 1280 && pole_interval > 0){
+            cv::line(color, cv::Point(WIDTH/2 + pole_interval / 2 ,0), cv::Point(WIDTH/2 + pole_interval / 2,HEIGHT), cv::Scalar(255, 200, 30), 5, 16);
+            cv::line(color, cv::Point(WIDTH/2 - pole_interval / 2,0), cv::Point(WIDTH/2 - pole_interval / 2,HEIGHT), cv::Scalar(255, 200, 30), 5, 16);
+        }
+
+        /*
+        
         cv::line(color, cv::Point(613, 0), cv::Point(620, 290), cv::Scalar(255, 0, 0), 5, 16);
         cv::line(color, cv::Point(25, 0), cv::Point(18, 290), cv::Scalar(255, 0, 0), 5, 16);
         cv::line(color, cv::Point(50, 280), cv::Point(50, 335), cv::Scalar(255, 255, 0), 1, 4);
         cv::line(color, cv::Point(590, 280), cv::Point(590, 335), cv::Scalar(255, 255, 0), 1, 4);
-
+        */
         cv::imshow("set", color);
-        if (cv::waitKey(5) == 116)
-        {
+
+        int input_key_num = cv::waitKey(5);
+        std::cout << input_key_num << std::endl;
+
+        switch(input_key_num){
+            case 84:
+                horizontal_line++;
+                break; 
+            case 82:
+                horizontal_line--;
+                break;
+            case 83:
+                pole_interval += 2;
+                break;
+            case 81:
+                pole_interval -= 2;
+                break;
+        }
+
+        if(input_key_num == 116){
             cv::destroyAllWindows();
             break;
         }
+
+        /*if (input_key_num == 116)
+        {
+            cv::destroyAllWindows();
+            break;
+        }else if (input_key_num == 84){
+            horizontal_line++; 
+        }else if (input_key_num == 82){
+            horizontal_line--;
+        }else if (input_key_num == 83){
+            pole_interval++;
+        
+        }*/
     }
 
     while (true)
@@ -144,6 +185,8 @@ int main(int argc, char **argv) try
         float sum_marker_coordinate_z = 0;
         float marker_coodinate_y = 0;
         bool exist = false;
+
+        
 
         if (marker_ids.size() > 0 && marker_ids.size() < 4)
         {
@@ -220,13 +263,65 @@ int main(int argc, char **argv) try
             float center_marker_z = -50000;
         }
 
-        // 検出したマーカー
 
+        cv::Mat obstacle = cv::Mat::zeros(color.size(),CV_8UC3);
+        int pix_count_x;
+        for(int pix_count_x = pole_interval / 2; pix_count_x < WIDTH /2 - pole_interval / 2; pix_count_x+=2){
+            for(int pix_count_y = 0; pix_count_y < HEIGHT/2; pix_count_y+=2){
+                if(depth_map.get_distance(pix_count_x, pix_count_y) < 3 && depth_map.get_distance(pix_count_x, pix_count_y) > 1.5){
+                    //std::cout << depth_map.get_distance(pix_count_x, pix_count_y) << std::endl;
+                    cv::circle(obstacle, cv::Point(pix_count_x,pix_count_y),1,cv::Scalar(255,255,255),-1);
+                }
+            }
+        }
+
+//-----------------------------------------------------------------//
+        cv::inRange(obstacle, cv::Scalar(200, 200, 200), cv::Scalar(255, 255, 255), obstacle);
+        cv::Mat LabelImg;
+        cv::Mat stats;
+        cv::Mat centroids;
+
+        int nLab = cv::connectedComponentsWithStats(obstacle, LabelImg, stats, centroids);
+
+        // 描画色決定
+
+        //重心計算
+        int centerX[nLab];
+        int centerY[nLab];
+        for (int i = 1; i < nLab; ++i)
+        {
+            double *param = centroids.ptr<double>(i);
+            centerX[i] = static_cast<int>(param[0]);
+            centerY[i] = static_cast<int>(param[1]);
+            
+        }
+
+            //座標
+        for (int i = 1; i < nLab; ++i)
+        {
+
+            int *param = stats.ptr<int>(i);
+            if (param[cv::ConnectedComponentsTypes::CC_STAT_AREA] > 500 && param[cv::ConnectedComponentsTypes::CC_STAT_LEFT] <= 800)
+            {
+                cv::circle(color, cv::Point(centerX[i], centerY[i]), 3, cv::Scalar(0, 0, 255), -1);
+                int x = param[cv::ConnectedComponentsTypes::CC_STAT_LEFT];
+                int y = param[cv::ConnectedComponentsTypes::CC_STAT_TOP];
+                int height = param[cv::ConnectedComponentsTypes::CC_STAT_HEIGHT];
+                int width = param[cv::ConnectedComponentsTypes::CC_STAT_WIDTH];
+                cv::rectangle(color, cv::Rect(x, y, width, height), cv::Scalar(0, 255, 0), 2);
+                std::stringstream num;
+                num << i;
+                putText(color, num.str(), cv::Point(x + 5, y + 20), cv::FONT_HERSHEY_COMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
+            }
+        }
+
+//------------------------------------------------------------------------//
        
         cv::Mat line_in = color;
         // cv::line(line_in,cv::Point(340/2,215/2),cv::Point(940/2,215/2), cv::Scalar(255,0,100), 5, 16);
 
         cv::imshow("marker_detection", line_in);
+        cv::imshow("obstacle",obstacle);
         //        cv::imshow("cr",depth);
 
         int key = cv::waitKey(10);
