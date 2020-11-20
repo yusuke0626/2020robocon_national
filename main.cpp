@@ -11,6 +11,11 @@
 #include <fstream>
 #include <numeric>
 #include <array>
+#include "TCP/tcpSend.h"
+
+using namespace ARRC;
+
+TCP tcp("172.16.93.227");
 
 constexpr std::size_t WIDTH = 640;
 constexpr std::size_t HEIGHT = 360;
@@ -267,12 +272,13 @@ int main(int argc, char **argv) try
 
 
         cv::Mat obstacle = cv::Mat::zeros(color.size(),CV_8UC3);
-        for(int pix_count_x = pole_interval / 4; pix_count_x < WIDTH  - pole_interval / 4; pix_count_x+=2){
+        for(int pix_count_x = pole_interval / 2; pix_count_x < WIDTH  - pole_interval / 4; pix_count_x+=2){
             for(int pix_count_y = horizontal_line ; pix_count_y < HEIGHT / 2; pix_count_y+=2){
                 if(depth_map.get_distance(pix_count_x, pix_count_y) < 3 && depth_map.get_distance(pix_count_x, pix_count_y) > 2.5){
                         //std::cout << pix_count_x  << ":" << pix_count_y << ":" << stability_count << std::endl;
                         //std::cout << WIDTH  << ":" << HEIGHT << ":" << stability_count << std::endl;
                     cv::circle(obstacle, cv::Point(pix_count_x,pix_count_y),1,cv::Scalar(255,255,255),-1);
+                    //cv::erode(obstacle, obstacle, cv::Mat(), cv::Point(-1,-1), 1);
                 }
             }
         }
@@ -283,7 +289,9 @@ int main(int argc, char **argv) try
         cv::Mat stats;
         cv::Mat centroids;
 
+        static int prev_nLab = 0;
         int nLab = cv::connectedComponentsWithStats(obstacle, LabelImg, stats, centroids);
+        //std::cout << "nLab:" << nLab << std::endl;        
 
         // 描画色決定
 
@@ -298,13 +306,16 @@ int main(int argc, char **argv) try
             
         }
 
+        int area_num = 0;
+        static int prev_area_num;
             //座標
         for (int i = 1; i < nLab; ++i)
         {
-
             int *param = stats.ptr<int>(i);
             if (param[cv::ConnectedComponentsTypes::CC_STAT_AREA] > 500 && param[cv::ConnectedComponentsTypes::CC_STAT_LEFT] <= 800)
             {
+                area_num++;
+            
                 cv::circle(color, cv::Point(centerX[i], centerY[i]), 3, cv::Scalar(0, 0, 255), -1);
                 int x = param[cv::ConnectedComponentsTypes::CC_STAT_LEFT];
                 int y = param[cv::ConnectedComponentsTypes::CC_STAT_TOP];
@@ -312,18 +323,27 @@ int main(int argc, char **argv) try
                 int width = param[cv::ConnectedComponentsTypes::CC_STAT_WIDTH];
                 cv::rectangle(color, cv::Rect(x, y, width, height), cv::Scalar(0, 255, 0), 2);
                 std::stringstream num;
-                num << i;
+                num << area_num;
                 putText(color, num.str(), cv::Point(x + 5, y + 20), cv::FONT_HERSHEY_COMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
             }
         }
 
+        //std::cout << prev_area_num << ":::" << area_num << std::endl;
+        if(area_num > prev_area_num){
+            system("play alart.wav&");
+        }
+        prev_area_num = area_num;
+        
+
 //------------------------------------------------------------------------//
+
+        tcp.send(data);
        
         cv::Mat line_in = color;
         // cv::line(line_in,cv::Point(340/2,215/2),cv::Point(940/2,215/2), cv::Scalar(255,0,100), 5, 16);
 
         cv::imshow("marker_detection", line_in);
-        cv::imshow("obstacle",obstacle);
+        //cv::imshow("obstacle",obstacle);
         //        cv::imshow("cr",depth);
 
         int key = cv::waitKey(10);
