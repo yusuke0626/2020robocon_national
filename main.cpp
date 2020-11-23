@@ -15,11 +15,19 @@
 
 using namespace ARRC;
 
-TCP tcp("172.16.93.227");
+TCP tcp("172.16.84.224");
 
 constexpr std::size_t WIDTH = 640;
 constexpr std::size_t HEIGHT = 360;
 constexpr double ratio = WIDTH / (double)HEIGHT;
+constexpr int STRAP1_LINE = 90;
+constexpr int STRAP2_LINE = 170;
+constexpr int STRAP3_LINE = 250;
+constexpr int STRAP4_LINE = 330;
+constexpr int STRAP5_LINE = 410;
+constexpr int STRAP6_LINE = 490;
+constexpr int STRAP7_LINE = 570;
+constexpr int STRAP8_LINE = 600;
 constexpr bool filter = true;
 constexpr short hole_fillter_mode = 1;
 
@@ -47,6 +55,7 @@ int horizontal_line = 0;
 
 int main(int argc, char **argv) try
 {
+
     rs2::colorizer cr;
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_COLOR, WIDTH, HEIGHT, RS2_FORMAT_BGR8, 30);
@@ -82,8 +91,8 @@ int main(int argc, char **argv) try
 
 
     while (true)
-    {
-
+    { 
+        //std::cout << "aa" << std::endl;
         rs2::frameset frames = pipe.wait_for_frames();
         rs2::align align_to_color(RS2_STREAM_COLOR);
         auto aligned_frames = align_to_color.process(frames);
@@ -105,14 +114,17 @@ int main(int argc, char **argv) try
             cv::line(color, cv::Point(WIDTH/2 + pole_interval / 2 ,0), cv::Point(WIDTH/2 + pole_interval / 2,HEIGHT), cv::Scalar(255, 200, 30), 5, 16);
             cv::line(color, cv::Point(WIDTH/2 - pole_interval / 2,0), cv::Point(WIDTH/2 - pole_interval / 2,HEIGHT), cv::Scalar(255, 200, 30), 5, 16);
         }
-
-        /*
         
-        cv::line(color, cv::Point(613, 0), cv::Point(620, 290), cv::Scalar(255, 0, 0), 5, 16);
-        cv::line(color, cv::Point(25, 0), cv::Point(18, 290), cv::Scalar(255, 0, 0), 5, 16);
-        cv::line(color, cv::Point(50, 280), cv::Point(50, 335), cv::Scalar(255, 255, 0), 1, 4);
-        cv::line(color, cv::Point(590, 280), cv::Point(590, 335), cv::Scalar(255, 255, 0), 1, 4);
-        */
+        cv::line(color, cv::Point(STRAP1_LINE, 0), cv::Point(STRAP1_LINE, 360), cv::Scalar(100, 100, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP2_LINE, 0), cv::Point(STRAP2_LINE, 360), cv::Scalar(110, 110, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP3_LINE, 0), cv::Point(STRAP3_LINE, 360), cv::Scalar(120, 120, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP4_LINE, 0), cv::Point(STRAP4_LINE, 360), cv::Scalar(130, 130, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP5_LINE, 0), cv::Point(STRAP5_LINE, 360), cv::Scalar(140, 140, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP6_LINE, 0), cv::Point(STRAP6_LINE, 360), cv::Scalar(150, 150, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP7_LINE, 0), cv::Point(STRAP7_LINE, 360), cv::Scalar(160, 170, 0), 2, 2);
+        cv::line(color, cv::Point(STRAP8_LINE, 0), cv::Point(STRAP8_LINE, 360), cv::Scalar(170, 170, 0), 2, 2);
+        
+        
         cv::imshow("set", color);
 
         int input_key_num = cv::waitKey(5);
@@ -135,23 +147,11 @@ int main(int argc, char **argv) try
 
         std::cout << "pole interval:" << pole_interval << std::endl;
 
-        if(input_key_num == 116){
+        if(input_key_num == 't'){
             cv::destroyAllWindows();
             break;
         }
 
-        /*if (input_key_num == 116)
-        {
-            cv::destroyAllWindows();
-            break;
-        }else if (input_key_num == 84){
-            horizontal_line++; 
-        }else if (input_key_num == 82){
-            horizontal_line--;
-        }else if (input_key_num == 83){
-            pole_interval++;
-        
-        }*/
     }
 
     while (true)
@@ -191,9 +191,8 @@ int main(int argc, char **argv) try
         float sum_marker_coordinate_x = 0;
         float sum_marker_coordinate_z = 0;
         float marker_coodinate_y = 0;
-        bool exist = false;
-
-        
+        bool exist = false;        
+        double send_data = 0;
 
         if (marker_ids.size() > 0 && marker_ids.size() < 4)
         {
@@ -206,6 +205,24 @@ int main(int argc, char **argv) try
                     {
                         sum_marker_coordinate_x += marker_corners[marker_num_count][i].x;
                         sum_marker_coordinate_z += marker_corners[marker_num_count][i].y;
+                    }
+
+                    if(sum_marker_coordinate_x > STRAP1_LINE && sum_marker_coordinate_x <= STRAP2_LINE){
+                        send_data += 10;
+                    }else if(sum_marker_coordinate_x > STRAP2_LINE && sum_marker_coordinate_x <= STRAP3_LINE){
+                        send_data += 20;
+                    }else if(sum_marker_coordinate_x > STRAP3_LINE && sum_marker_coordinate_x <= STRAP4_LINE){
+                        send_data += 30;
+                    }else if(sum_marker_coordinate_x > STRAP4_LINE && sum_marker_coordinate_x <= STRAP5_LINE){
+                        send_data += 40;
+                    }else if(sum_marker_coordinate_x > STRAP5_LINE && sum_marker_coordinate_x < STRAP6_LINE){
+                        send_data += 50;
+                    }else if(sum_marker_coordinate_x > STRAP6_LINE && sum_marker_coordinate_x < STRAP7_LINE){
+                        send_data += 60;
+                    }else if(sum_marker_coordinate_x > STRAP7_LINE && sum_marker_coordinate_x < STRAP8_LINE){
+                        send_data += 70;
+                    }else{
+                       // tcp.send(0);
                     }
 
                     cv::aruco::estimatePoseSingleMarkers(marker_corners, 0.406, cameraMatrix, distCoeffs, rvecs,tvecs);
@@ -257,7 +274,7 @@ int main(int argc, char **argv) try
                             rdist.rs_x = (point[0] * 1000 + rgb.x * 1000) / 2;
                             rdist.rs_y = (point[2] * 1000 + rgb.y * 1000) / 2;
                             rdist.rs_z = (point[1] * 1000 + rgb.z * 1000) / 2;
-                            std::cout << rdist.rs_x << "  " << rdist.rs_y << "  " << rdist.rs_z << std::endl;
+                            //std::cout << rdist.rs_x << "  " << rdist.rs_y << "  " << rdist.rs_z << std::endl;
                         }
                     }
                 }
@@ -270,11 +287,10 @@ int main(int argc, char **argv) try
             float center_marker_z = -50000;
         }
 
-
         cv::Mat obstacle = cv::Mat::zeros(color.size(),CV_8UC3);
-        for(int pix_count_x = pole_interval / 2; pix_count_x < WIDTH  - pole_interval / 4; pix_count_x+=2){
+        for(int pix_count_x = WIDTH/2 - pole_interval / 2 ; pix_count_x < WIDTH/2 + pole_interval / 2; pix_count_x+=2){
             for(int pix_count_y = horizontal_line ; pix_count_y < HEIGHT / 2; pix_count_y+=2){
-                if(depth_map.get_distance(pix_count_x, pix_count_y) < 3 && depth_map.get_distance(pix_count_x, pix_count_y) > 2.5){
+                if(depth_map.get_distance(pix_count_x, pix_count_y) < 2.5 && depth_map.get_distance(pix_count_x, pix_count_y) > 2.0){
                         //std::cout << pix_count_x  << ":" << pix_count_y << ":" << stability_count << std::endl;
                         //std::cout << WIDTH  << ":" << HEIGHT << ":" << stability_count << std::endl;
                     cv::circle(obstacle, cv::Point(pix_count_x,pix_count_y),1,cv::Scalar(255,255,255),-1);
@@ -309,13 +325,36 @@ int main(int argc, char **argv) try
         int area_num = 0;
         static int prev_area_num;
             //座標
+
+        if(nLab < 1){
+            tcp.send(0);
+        }
+
         for (int i = 1; i < nLab; ++i)
         {
             int *param = stats.ptr<int>(i);
             if (param[cv::ConnectedComponentsTypes::CC_STAT_AREA] > 500 && param[cv::ConnectedComponentsTypes::CC_STAT_LEFT] <= 800)
             {
+                std::cout << "centerX:" << centerX[i] << std::endl;
+
                 area_num++;
-            
+                if(centerX[i] > STRAP1_LINE && centerX[i] <= STRAP2_LINE){
+                    send_data += 1;
+                }else if(centerX[i] > STRAP2_LINE && centerX[i] <= STRAP3_LINE){
+                    send_data += 2;
+                }else if(centerX[i] > STRAP3_LINE && centerX[i] <= STRAP4_LINE){
+                    send_data += 3;
+                }else if(centerX[i] > STRAP4_LINE && centerX[i] <= STRAP5_LINE){
+                    send_data += 4;
+                }else if(centerX[i] > STRAP5_LINE && centerX[i] <= STRAP6_LINE){
+                    send_data += 5;
+                }else if(centerX[i] > STRAP6_LINE && centerX[i] <= STRAP7_LINE){
+                    send_data += 6;
+                }else if(centerX[i] > STRAP7_LINE && centerX[i] <= STRAP1_LINE){
+                    send_data += 7;
+                }else{
+                    //tcp.send(0);
+                }
                 cv::circle(color, cv::Point(centerX[i], centerY[i]), 3, cv::Scalar(0, 0, 255), -1);
                 int x = param[cv::ConnectedComponentsTypes::CC_STAT_LEFT];
                 int y = param[cv::ConnectedComponentsTypes::CC_STAT_TOP];
@@ -328,23 +367,27 @@ int main(int argc, char **argv) try
             }
         }
 
+       // std::cout << "test" << std::endl;
+
         //std::cout << prev_area_num << ":::" << area_num << std::endl;
         if(area_num > prev_area_num){
-            system("play alart.wav&");
+            //system("play alart.wav&");
         }
         prev_area_num = area_num;
         
 
 //------------------------------------------------------------------------//
-
-        tcp.send(data);
+         //std::cout << send_data << std::endl;
+//        std::cout << "before" << std::endl;
+        tcp.send(send_data);
+        std::cout << send_data << std::endl;
        
         cv::Mat line_in = color;
         // cv::line(line_in,cv::Point(340/2,215/2),cv::Point(940/2,215/2), cv::Scalar(255,0,100), 5, 16);
 
         cv::imshow("marker_detection", line_in);
-        //cv::imshow("obstacle",obstacle);
-        //        cv::imshow("cr",depth);
+        cv::imshow("obstacle",obstacle);
+        //cv::imshow("cr",depth);
 
         int key = cv::waitKey(10);
         if (key == 115)

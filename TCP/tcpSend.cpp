@@ -19,7 +19,7 @@ namespace ARRC{
             std::cerr << "failed to send" << std::endl;
             return false;
         }else{
-            recv(sockfd, buf, sizeof(buf), 0);
+           // recv(sockfd, buf, sizeof(buf), 0);
             std::cout << buf << std::endl;
         }
         return true;
